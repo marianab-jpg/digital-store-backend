@@ -1,9 +1,14 @@
+const path = require('node:path')
 const express = require('express')
 const cors = require('cors')
 const helmet = require('helmet')
+const swaggerUi = require('swagger-ui-express')
+
 const { sequelize } = require('./models')
+const openapi = require('./docs/openapi')
 const userRoutes = require('./routes/userRoutes')
 const categoryRoutes = require('./routes/categoryRoutes')
+const productRoutes = require('./routes/productRoutes')
 
 const app = express()
 
@@ -11,6 +16,23 @@ app.disable('x-powered-by')
 app.use(helmet())
 app.use(cors())
 app.use(express.json({ limit: '10mb' }))
+
+app.get('/openapi.json', (req, res) => {
+  res.json(openapi)
+})
+
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(openapi))
+
+app.use(
+  '/uploads',
+  express.static(path.resolve(__dirname, '../uploads'), {
+    dotfiles: 'deny',
+    index: false,
+    setHeaders(res) {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
+    },
+  }),
+)
 
 app.get('/health', async (req, res, next) => {
   try {
@@ -27,6 +49,7 @@ app.get('/health', async (req, res, next) => {
 
 app.use('/v1/user', userRoutes)
 app.use('/v1/category', categoryRoutes)
+app.use('/v1/product', productRoutes)
 
 app.use((req, res) => {
   res.status(404).json({
