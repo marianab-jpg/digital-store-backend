@@ -223,11 +223,26 @@ async function search(req, res, next) {
       })
     }
 
+    // Busca as opções dos filtros em uma única consulta.
+    const filterOptions = parameters.optionFilters.length === 0
+      ? []
+      : await ProductOption.findAll({
+          where: {
+            id: {
+              [Op.in]: parameters.optionFilters.map((filter) => filter.id),
+            },
+          },
+          attributes: ['id', 'product_id', 'values'],
+          raw: true,
+        })
+
+    const optionsById = new Map(
+      filterOptions.map((option) => [option.id, option]),
+    )
+
     // Valores da mesma opção usam OU; filtros de opções distintas usam E.
     for (const filter of parameters.optionFilters) {
-      const option = await ProductOption.findByPk(filter.id, {
-        attributes: ['product_id', 'values'],
-      })
+      const option = optionsById.get(filter.id)
 
       const matches = option && filter.values.some(
         (value) => option.values.split(',').includes(value),
@@ -240,38 +255,53 @@ async function search(req, res, next) {
       })
     }
 
+    const include = []
+
+    if (parameters.fields.includes('category_ids')) {
+      include.push({
+        model: Category,
+        as: 'categories',
+        attributes: ['id'],
+        through: {
+          attributes: [],
+        },
+      })
+    }
+
+    if (parameters.fields.includes('images')) {
+      include.push({
+        model: ProductImage,
+        as: 'images',
+        attributes: ['id', 'path'],
+        separate: true,
+        order: [['id', 'ASC']],
+      })
+    }
+
+    if (parameters.fields.includes('options')) {
+      include.push({
+        model: ProductOption,
+        as: 'options',
+        attributes: ['id', 'title', 'shape', 'radius', 'type', 'values'],
+        separate: true,
+        order: [['id', 'ASC']],
+      })
+    }
+
+    const attributes = parameters.fields.filter(
+      (field) => !['category_ids', 'images', 'options'].includes(field),
+    )
+
+    // O ID permite ao Sequelize associar as relações, mesmo se não for exibido.
+    if (!attributes.includes('id')) attributes.unshift('id')
+
     const { count, rows } = await Product.findAndCountAll({
+      attributes,
       where: conditions.length > 0
         ? { [Op.and]: conditions }
         : {},
-      include: [
-        {
-          model: Category,
-          as: 'categories',
-          attributes: ['id'],
-          through: {
-            attributes: [],
-          },
-        },
-        {
-          model: ProductImage,
-          as: 'images',
-          attributes: ['id', 'path'],
-        },
-        {
-          model: ProductOption,
-          as: 'options',
-          attributes: [
-            'id',
-            'title',
-            'shape',
-            'radius',
-            'type',
-            'values',
-          ],
-        },
-      ],
-      distinct: true,
+      include,
+      distinct: parameters.fields.includes('category_ids'),
       order: [['id', 'ASC']],
       ...(parameters.limit === -1
         ? {}

@@ -351,7 +351,7 @@ Execute:
 npm test
 ```
 
-A suíte contém 13 testes de integração com Jest, Supertest e MySQL, cobrindo:
+A suíte contém 19 testes: 13 de integração com MySQL e 6 testes unitários focados, utilizando Jest e Supertest. A cobertura inclui:
 
 - Conexão com o banco.
 - Cadastro, hash de senha e login.
@@ -404,3 +404,10 @@ Para uso em produção, ainda são necessários ajustes como controle de acesso 
 ## Referência
 
 [Documentação oficial do projeto](https://github.com/digitalcollegebr/projeto-backend)
+
+## Melhorias na atualização de imagens e nas consultas
+
+- A atualização aceita o caminho relativo ou uma URL HTTP/HTTPS cujo caminho corresponda à imagem já cadastrada, preservando o arquivo. Não realiza download da URL. Para substituir a imagem, envie Base64.
+- A busca consulta apenas os campos e relações solicitados em fields. O ID pode ser consultado internamente para associar os registros, sem aparecer na resposta quando não solicitado.
+- Os filtros de opções são consultados em lote.
+- Imagens e opções solicitadas na resposta são carregadas separadamente para evitar a multiplicação de linhas dos relacionamentos.

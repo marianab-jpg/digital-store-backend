@@ -105,6 +105,21 @@ function checkRepeatedIds(items, name) {
   }
 }
 
+function isCurrentImageReference(content, currentPath) {
+  if (content === currentPath) return true
+
+  try {
+    const url = new URL(content)
+
+    return ['http:', 'https:'].includes(url.protocol) &&
+      !url.username &&
+      !url.password &&
+      url.pathname === currentPath
+  } catch {
+    return false
+  }
+}
+
 async function saveImage(content, type, state) {
   if (
     !content ||
@@ -294,8 +309,17 @@ async function applyRelations(product, data, transaction, state, creating) {
         continue
       }
 
-      // Reenviar o caminho atual mantém a imagem existente.
-      if (input.content !== undefined && input.content !== image.path) {
+      // Caminho relativo ou URL completa da imagem atual preservam o arquivo.
+      if (
+        input.content !== undefined &&
+        !isCurrentImageReference(input.content, image.path)
+      ) {
+        if (/^https?:\/\//i.test(input.content)) {
+          throw badRequest(
+            'A URL deve apontar para a imagem atual. Para substituir, envie Base64.',
+          )
+        }
+
         const newPath = await saveImage(input.content, input.type, state)
 
         state.removedFiles.push(image.path)
