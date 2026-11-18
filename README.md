@@ -1,6 +1,6 @@
 # Digital Store — Back-end
 
-API REST desenvolvida por **Mariana Vitória Bernardino Nicolau** como projeto final de Back-end da Digital College.
+API REST desenvolvida por **Mariana Vitória Bernardino Nicolau** como projeto final de Back-end.
 
 Implementa gerenciamento de usuários, categorias e produtos, autenticação JWT, upload de imagens e persistência em MySQL.
 
